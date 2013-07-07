@@ -22,6 +22,17 @@ function Interfaces() {
                                     "clear_name":"Status setzen"
                                 }
                             ]
+                        },
+                        {
+                            "name":"ab440s",
+                            "clear_name":"AB 440S",
+                            "protocol":"1",
+                            "actions": [
+                                {
+                                    "name":"set_status",
+                                    "clear_name":"Status setzen"
+                                }
+                            ]
                         }
                     ]
                 },
@@ -56,6 +67,50 @@ function Interfaces() {
                                     "clear_name":"Status setzen"
                                 }
                             ]
+                        },
+                        {
+                            "name":"cmr1000",
+                            "clear_name":"CMR 1000",
+                            "protocol":"1",
+                            "actions": [
+                                {
+                                    "name":"set_status",
+                                    "clear_name":"Status setzen"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"cmr300",
+                            "clear_name":"CMR 300",
+                            "protocol":"1",
+                            "actions": [
+                                {
+                                    "name":"set_status",
+                                    "clear_name":"Status setzen"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"itlr300",
+                            "clear_name":"ITLR 300",
+                            "protocol":"1",
+                            "actions": [
+                                {
+                                    "name":"set_status",
+                                    "clear_name":"Status setzen"
+                                }
+                            ]
+                        },
+                        {
+                            "name":"itlr3500",
+                            "clear_name":"ITLR 3500",
+                            "protocol":"1",
+                            "actions": [
+                                {
+                                    "name":"set_status",
+                                    "clear_name":"Status setzen"
+                                }
+                            ]
                         }
                     ]
                 }
@@ -66,17 +121,18 @@ function Interfaces() {
     // Port to listen on
     this.port = 8080;
 
-    // GPIO17 [PIN 11 on the board]
-    this.PIN = 17;
+    // Time
+    var now = new Date();
+    this.date = now.format("d.m.Y hh:MM:ss");
 
     // Default for Protocol 1 (which fits for most devices)
     this.pulseLength = 350;
 
-    // Default for Protocol 1
-    this.repeatTransmit = 10;
-
     // Default Protocol
     this.protocol = 1;
+
+    // Debug?
+    this.debug = false;
 
     // Values that will be set as soon as a device has been chosen
     this.master_dip = "";
@@ -85,6 +141,30 @@ function Interfaces() {
     this.model = "";
     this.interface = "";
 }
+/**
+ * Set params for execution of commands
+ * Param: interface,vendor,model,protocol,master_dip,slave_dip
+ * Returns: all currently known data regarding this interface
+ */
+Interfaces.prototype.setParams = function (interface,vendor,model,protocol,master_dip,slave_dip) {
+    this.interface = interface;
+    this.vendor = vendor;
+    this.model = model;
+    this.protocol = protocol;
+    this.master_dip = master_dip;
+    this.slave_dip = slave_dip;
+
+    if (this.debug) {
+        console.log(this.date+" ## Function: interfaces.setParams ##");
+        console.log(this.date+" Interface: "+interfaces.interface);
+        console.log(this.date+" Vendor: "+interfaces.vendor);
+        console.log(this.date+" Model: "+interfaces.model);
+        console.log(this.date+" Protocol: "+interfaces.protocol);
+        console.log(this.date+" master_dip: "+interfaces.master_dip);
+        console.log(this.date+" slave_dip: "+interfaces.slave_dip);
+    }
+}
+
 /**
  * Get a specific interface
  * Param: Interface name (433,868,xbee)
@@ -202,222 +282,203 @@ Interfaces.prototype.getModel = function (interface_name,vendor_name,model_name)
  * Returns: codeword
  */
 Interfaces.prototype.getCodeword = function (master_dip,slave_dip,status) {
-    console.log("MASTER DIP (SYSTEM CODE): "+master_dip);
-    console.log("SLAVE DIP (UNIT CODE): "+slave_dip);
-    console.log("STATUS: "+status);
-    console.log("PROTOCOL: "+this.protocol);
-    console.log("VENDOR: "+this.vendor);
-    console.log("MODEL: "+this.model);
+    if (this.debug) {
+        console.log(this.date+" ## Function: interfaces.getCodeword ##");
+        console.log(this.date+" master_dip: "+master_dip);
+        console.log(this.date+" slave_dip: "+slave_dip);
+        console.log(this.date+" Status: "+status);
+    }
+
     // We will encode the given DIP combinations and the status in a so called TRI-STATE Code
-    // Infos on ri-State: http://sui77.wordpress.com/2011/04/12/163/
+    // Infos on Tri-State: http://sui77.wordpress.com/2011/04/12/163/
 
     // First, we check which protocol is needed since the codewords change between protocols.
     // Again, read http://sui77.wordpress.com/2011/04/12/163/ for information on that.
     // Check this for a table of devices & protocols: https://code.google.com/p/rc-switch/wiki/List_KnownDevices
 
-    /* Tri-State Mapping:
-        0 = F
-        1 = 0    
-    */
+    if (this.vendor == 'intertechno') {
+        var master_dip = (master_dip + '').toUpperCase();
+        var slave_dip = parseInt(slave_dip,10);
 
-    // Proto 1: Most Elro, Polling & Intertechno
-    if (this.protocol == 1) {
-        if (this.vendor == 'elro' || this.vendor == 'pollin') {
-            var codeword = "";
-            /* Our codeword will have 13 bits
-                Bit 1-5: Encoded SYSTEM-CODE (which is the master_dip)
-                Bit 6-10: Encoded UNIT-CODE (which is the slave_dip)
-                Bit 11-13: Status + Sync-Bit
-            */
+        var codeword = '';
+        var codepart_master = '';
+        var codepart_slave = '';
 
-            // Encode SYSTEM_CODE from binary format to the tri-state format
-            for (var i=0;i<5;i++) { 
-                var cur = master_dip.charAt(i);
-                if (cur == '0') {
-                    codeword = codeword+"F";
-                    console.log("New Codeword: "+codeword);
-                }
-                else {
-                    codeword = codeword+"0";
-                    console.log("New Codeword: "+codeword);
-                }
-            }
-
-            // Encode UNIT from binary format to the tri-state format
-            for (var j=0;j<5;j++) { 
-                var cur = slave_dip.charAt(j);
-                if (cur == '0') {
-                    codeword = codeword+"F";
-                    console.log("New Codeword: "+codeword);
-                }
-                else {
-                    codeword = codeword+"0";
-                    console.log("New Codeword: "+codeword);
-                }
-            }
-
-            // Encode status from string to trit-state format
-            if (status == 'on') {
-                codeword = codeword+"0F";
-            }
-            else if(status == 'off') {
-                codeword = codeword+"F0";
-            }
-
-            console.log("Codeword: "+codeword);
-            return codeword;
+        // Information taken form here: http://www.fhemwiki.de/wiki/Intertechno_Code_Berechnung  
+        switch (master_dip) {
+          case "A":
+            codepart_master = "0000";
+            break;
+          case "B":
+            codepart_master = "F000";
+            break;
+          case "C":
+            codepart_master = "0F00";
+            break;
+          case "D":
+            codepart_master = "FF00";
+            break;
+          case "E":
+            codepart_master = "00F0";
+            break;
+          case "F":
+            codepart_master = "F0F0";
+            break;
+          case "G":
+            codepart_master = "0FF0";
+            break;
+          case "H":
+            codepart_master = "FFF0";
+            break;
+          case "I":
+            codepart_master = "000F";
+            break;
+          case "J":
+            codepart_master = "F00F";
+            break;
+          case "K":
+            codepart_master = "0F0F";
+            break;
+          case "L":
+            codepart_master = "FF0F";
+            break;
+          case "M":
+            codepart_master = "00FF";
+            break;
+          case "N":
+            codepart_master = "F0FF";
+            break;
+          case "O":
+            codepart_master = "0FFF";
+            break;
+          case "P":
+            codepart_master = "FFFF";
+            break;
+          default:
+            throw new Error('Master DIP '+master_dip+' not supported.');
+            break;
         }
-        else if (this.vendor == 'intertechno') {
-            var master_dip = (master_dip + '').toUpperCase();
-            var slave_dip = parseInt(slave_dip,10);
 
-            console.log("Slave DIP: "+slave_dip);
-            console.log("Master DIP: "+master_dip);
+        // Append codepart_master to codeword
+        codeword = codeword+codepart_master;
 
-            var codeword = '';
-            var codepart_master = '';
-            var codepart_slave = '';
-            console.log("Vendor: Intertechno");
+        // Encode Slave DIP - use parseInt to strip zeroes from slave_dip  
+        switch (slave_dip) {
+          case 1:
+            codepart_slave = "0000";
+            break;
+          case 2:
+            codepart_slave = "F000";
+            break;
+          case 3:
+            codepart_slave = "0F00";
+            break;
+          case 4:
+            codepart_slave = "FF00";
+            break;
+          case 5:
+            codepart_slave = "00F0";
+            break;
+          case 6:
+            codepart_slave = "F0F0";
+            break;
+          case 7:
+            codepart_slave = "0FF0";
+            break;
+          case 8:
+            codepart_slave = "FFF0";
+            break;
+          case 9:
+            codepart_slave = "000F";
+            break;
+          case 10:
+            codepart_slave = "F00F";
+            break;
+          case 11:
+            codepart_slave = "0F0F";
+            break;
+          case 12:
+            codepart_slave = "FF0F";
+            break;
+          case 13:
+            codepart_slave = "00FF";
+            break;
+          case 14:
+            codepart_slave = "F0FF";
+            break;
+          case 15:
+            codepart_slave = "0FFF";
+            break;
+          case 16:
+            codepart_slave = "FFFF";
+            break;
+          default:
+            throw new Error('Slave DIP '+slave_dip+' not supported.');
+            break;
+        }
+        
+        // Append codepart_slave to codeword
+        codeword = codeword+codepart_slave;
 
-            // Information taken form here: http://www.fhemwiki.de/wiki/Intertechno_Code_Berechnung  
-            switch (master_dip) {
-              case "A":
-                codepart_master = "0000";
-                break;
-              case "B":
-                codepart_master = "F000";
-                break;
-              case "C":
-                codepart_master = "0F00";
-                break;
-              case "D":
-                codepart_master = "FF00";
-                break;
-              case "E":
-                codepart_master = "00F0";
-                break;
-              case "F":
-                codepart_master = "F0F0";
-                break;
-              case "G":
-                codepart_master = "0FF0";
-                break;
-              case "H":
-                codepart_master = "FFF0";
-                break;
-              case "I":
-                codepart_master = "000F";
-                break;
-              case "J":
-                codepart_master = "F00F";
-                break;
-              case "K":
-                codepart_master = "0F0F";
-                break;
-              case "L":
-                codepart_master = "FF0F";
-                break;
-              case "M":
-                codepart_master = "00FF";
-                break;
-              case "N":
-                codepart_master = "F0FF";
-                break;
-              case "O":
-                codepart_master = "0FFF";
-                break;
-              case "P":
-                codepart_master = "FFFF";
-                break;
-              default:
-                throw new Error('Master DIP '+master_dip+' not supported.');
-                break;
+        // Next 2 bits are always "0F"
+        codeword = codeword+"0F";
+
+        // Encode status from string to trit-state format
+        if (status == 'on') {
+            codeword = codeword+"FF";
+        }
+        else if(status == 'off') {
+            codeword = codeword+"F0";
+        }
+
+        if (this.debug) {
+            console.log(this.date+" Codeword: "+codeword);
+        }
+
+        return codeword;
+    }
+    else {
+        var codeword = "";
+        /* Our codeword will have 13 bits
+            Bit 1-5: Encoded SYSTEM-CODE (which is the master_dip)
+            Bit 6-10: Encoded UNIT-CODE (which is the slave_dip)
+            Bit 11-13: Status + Sync-Bit
+        */
+
+        // Encode SYSTEM_CODE from binary format to the tri-state format
+        for (var i=0;i<5;i++) { 
+            var cur = master_dip.charAt(i);
+            if (cur == '0') {
+                codeword = codeword+"F";
             }
-
-            console.log("Codepart Master: "+codepart_master);
-
-            // Append codepart_master to codeword
-            codeword = codeword+codepart_master;
-
-            console.log("Codeword: "+codeword);
-
-            // Encode Slave DIP - use parseInt to strip zeroes from slave_dip  
-            switch (slave_dip) {
-              case 1:
-                codepart_slave = "0000";
-                break;
-              case 2:
-                codepart_slave = "F000";
-                break;
-              case 3:
-                codepart_slave = "0F00";
-                break;
-              case 4:
-                codepart_slave = "FF00";
-                break;
-              case 5:
-                codepart_slave = "00F0";
-                break;
-              case 6:
-                codepart_slave = "F0F0";
-                break;
-              case 7:
-                codepart_slave = "0FF0";
-                break;
-              case 8:
-                codepart_slave = "FFF0";
-                break;
-              case 9:
-                codepart_slave = "000F";
-                break;
-              case 10:
-                codepart_slave = "F00F";
-                break;
-              case 11:
-                codepart_slave = "0F0F";
-                break;
-              case 12:
-                codepart_slave = "FF0F";
-                break;
-              case 13:
-                codepart_slave = "00FF";
-                break;
-              case 14:
-                codepart_slave = "F0FF";
-                break;
-              case 15:
-                codepart_slave = "0FFF";
-                break;
-              case 16:
-                codepart_slave = "FFFF";
-                break;
-              default:
-                throw new Error('Slave DIP '+slave_dip+' not supported.');
-                break;
+            else {
+                codeword = codeword+"0";
             }
+        }
 
-            console.log("Codepart Slave: "+codepart_slave);
-            
-            // Append codepart_slave to codeword
-            codeword = codeword+codepart_slave;
+        // Encode UNIT from binary format to the tri-state format
+        for (var j=0;j<5;j++) { 
+            var cur = slave_dip.charAt(j);
+            if (cur == '0') {
+                codeword = codeword+"F";
+            }
+            else {
+                codeword = codeword+"0";
+            }
+        }
 
-            console.log("Codeword: "+codeword);
-
-            // Next 2 bits are always "0F"
+        // Encode status from string to trit-state format
+        if (status == 'on') {
             codeword = codeword+"0F";
-            console.log("Codeword: "+codeword);
-
-            // Encode status from string to trit-state format
-            if (status == 'on') {
-                codeword = codeword+"FF";
-            }
-            else if(status == 'off') {
-                codeword = codeword+"F0";
-            }
-
-            console.log("Codeword: "+codeword);
-            return codeword;
         }
+        else if(status == 'off') {
+            codeword = codeword+"F0";
+        }
+
+        if (this.debug) {
+            console.log(this.date+" Codeword: "+codeword);
+        }
+        return codeword;
     }
 }
 
@@ -444,6 +505,7 @@ Interfaces.prototype.getCodeword = function (master_dip,slave_dip,status) {
 //     var index = this.findIndex(id);
 //     this.tasks.splice(index, 1);
 // }
+
 /**
  * API
  */
@@ -454,12 +516,20 @@ app.configure(function () {
     // used to parse JSON object given in the body request
     app.use(express.bodyParser());
 });
+
 /**
  * HTTP GET /interfaces
  * Returns: the list of interfaces in JSON format
  */
 app.get('/interfaces', function (request, response) {
-    response.json({interfaces: interfaces.getInterfaces()});
+    try {
+        response.json({interfaces: interfaces.getInterfaces()});
+    } catch (exception) {
+        if (this.debug) {
+            console.log(this.date+" ERROR: "+exception);
+        }
+        response.send(404).send(exception);
+    }
 });
 
 /**
@@ -472,8 +542,11 @@ app.get('/interfaces/:name', function (request, response) {
     var if_name = request.params.name;
     try {
         response.json(interfaces.getInterface(if_name));
-    } catch (exeception) {
-        response.send(404);
+    } catch (exception) {
+        if (this.debug) {
+            console.log(this.date+" ERROR: "+exception);
+        }
+        response.send(404).send(exception);
     }
     
 });
@@ -489,8 +562,11 @@ app.get('/interfaces/:interface_name/vendors/:vendor_name', function (request, r
     var vendor_name = request.params.vendor_name;
     try {
         response.json(interfaces.getVendor(if_name,vendor_name));
-    } catch (exeception) {
-        response.send(404);
+    } catch (exception) {
+        if (this.debug) {
+            console.log(this.date+" ERROR: "+exception);
+        }
+        response.send(404).send(exception);
     }
     
 });
@@ -507,8 +583,8 @@ app.get('/interfaces/:interface_name/vendors/:vendor_name/models/:model_name', f
     var model_name = request.params.model_name;
     try {
         response.json(interfaces.getModel(if_name,vendor_name,model_name));
-    } catch (exeception) {
-        response.send(404);
+    } catch (exception) {
+        response.send(404).send(exception);
     }
     
 });
@@ -517,8 +593,11 @@ app.get('/interfaces/:interface_name/vendors/:vendor_name/models/:model_name', f
 app.get('/enabletransmit', function (request, response) {
     try {
         response.json(interfaces.enableTransmit(17));
-    } catch (exeception) {
-        response.send(404);
+    } catch (exception) {
+        if (this.debug) {
+            console.log(this.date+" ERROR: "+exception);
+        }
+        response.send(404).send(exception);
     }
     
 });
@@ -532,8 +611,11 @@ app.get('/getcodeword', function (request, response) {
         interfaces.model = "ab440sc";
         interfaces.interface = "433";
         response.json(interfaces.getCodeword("10000","11110","on"));
-    } catch (exeception) {
-        response.send(404);
+    } catch (exception) {
+        if (this.debug) {
+            console.log(this.date+" ERROR: "+exception);
+        }
+        response.send(404).send(exception);
     }
     
 });
@@ -541,8 +623,11 @@ app.get('/getcodeword', function (request, response) {
 app.get('/sendcode', function (request, response) {
     try {
         response.json(interfaces.sendCode("0FFFF0FFFF0F"));
-    } catch (exeception) {
-        response.send(404);
+    } catch (exception) {
+        if (this.debug) {
+            console.log(this.date+" ERROR: "+exception);
+        }
+        response.send(404).send(exception);
     }
     
 });
@@ -607,4 +692,5 @@ app.post('/interfaces/:interface_name/vendors/:vendor_name/models/:model_name', 
 //     }
 // });
 
-app.listen(interfaces.port); //to port on which the express server listen
+// Start the app, listen on defined port (usually 8080)
+app.listen(interfaces.port); 
