@@ -26,6 +26,23 @@ function Interfaces() {
                     ]
                 },
                 {
+                    "name":"pollin",
+                    "clear_name":"Pollin",
+                    "models": [
+                        {
+                            "name":"2605",
+                            "clear_name":"2605",
+                            "protocol":"1",
+                            "actions": [
+                                {
+                                    "name":"set_status",
+                                    "clear_name":"Status setzen"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
                     "name":"intertechno",
                     "clear_name":"Intertechno",
                     "models": [
@@ -60,6 +77,13 @@ function Interfaces() {
 
     // Default Protocol
     this.protocol = 1;
+
+    // Values that will be set as soon as a device has been chosen
+    this.master_dip = "";
+    this.slave_dip = "";
+    this.vendor = "";
+    this.model = "";
+    this.interface = "";
 }
 /**
  * Get a specific interface
@@ -173,21 +197,6 @@ Interfaces.prototype.getModel = function (interface_name,vendor_name,model_name)
 }
 
 /**
- * Enable Transmit on a given GPIO PIN
- * Params: PIN
- * Returns: /
- */
-Interfaces.prototype.enableTransmit = function (PIN) {
-    console.log("Enable Transmit");
-    var sys = require('sys');
-    var exec = require('child_process').exec;
-
-    // Write to the PIN
-    var export1 = exec('echo "'+PIN+'" > /sys/class/gpio/export');
-    var direciton1 = exec('echo "out" > /sys/class/gpio/gpio'+PIN+'/direction');
-}
-
-/**
  * Generate the code message that will be sent
  * Params: master_dip (e.g. 10000), slave_dip (e.g. 11000), status (e.g. 'on' or 'off')
  * Returns: codeword
@@ -197,6 +206,8 @@ Interfaces.prototype.getCodeword = function (master_dip,slave_dip,status) {
     console.log("SLAVE DIP (UNIT CODE): "+slave_dip);
     console.log("STATUS: "+status);
     console.log("PROTOCOL: "+this.protocol);
+    console.log("VENDOR: "+this.vendor);
+    console.log("MODEL: "+this.model);
     // We will encode the given DIP combinations and the status in a so called TRI-STATE Code
     // Infos on ri-State: http://sui77.wordpress.com/2011/04/12/163/
 
@@ -211,320 +222,203 @@ Interfaces.prototype.getCodeword = function (master_dip,slave_dip,status) {
 
     // Proto 1: Most Elro, Polling & Intertechno
     if (this.protocol == 1) {
-        var codeword = "";
-        /* Our codeword will have 13 bits
-            Bit 1-5: Encoded SYSTEM-CODE (which is the master_dip)
-            Bit 6-10: Encoded UNIT-CODE (which is the slave_dip)
-            Bit 11-13: Status + Sync-Bit
-        */
+        if (this.vendor == 'elro' || this.vendor == 'pollin') {
+            var codeword = "";
+            /* Our codeword will have 13 bits
+                Bit 1-5: Encoded SYSTEM-CODE (which is the master_dip)
+                Bit 6-10: Encoded UNIT-CODE (which is the slave_dip)
+                Bit 11-13: Status + Sync-Bit
+            */
 
-        // Encode SYSTEM_CODE from binary format to the tri-state format
-        for (var i=0;i<5;i++) { 
-            var cur = master_dip.charAt(i);
-            if (cur == '0') {
-                codeword = codeword+"F";
-                console.log("New Codeword: "+codeword);
+            // Encode SYSTEM_CODE from binary format to the tri-state format
+            for (var i=0;i<5;i++) { 
+                var cur = master_dip.charAt(i);
+                if (cur == '0') {
+                    codeword = codeword+"F";
+                    console.log("New Codeword: "+codeword);
+                }
+                else {
+                    codeword = codeword+"0";
+                    console.log("New Codeword: "+codeword);
+                }
             }
-            else {
-                codeword = codeword+"0";
-                console.log("New Codeword: "+codeword);
+
+            // Encode UNIT from binary format to the tri-state format
+            for (var j=0;j<5;j++) { 
+                var cur = slave_dip.charAt(j);
+                if (cur == '0') {
+                    codeword = codeword+"F";
+                    console.log("New Codeword: "+codeword);
+                }
+                else {
+                    codeword = codeword+"0";
+                    console.log("New Codeword: "+codeword);
+                }
             }
+
+            // Encode status from string to trit-state format
+            if (status == 'on') {
+                codeword = codeword+"0F";
+            }
+            else if(status == 'off') {
+                codeword = codeword+"F0";
+            }
+
+            console.log("Codeword: "+codeword);
+            return codeword;
         }
+        else if (this.vendor == 'intertechno') {
+            var master_dip = (master_dip + '').toUpperCase();
+            var slave_dip = parseInt(slave_dip,10);
 
-        // Encode UNIT from binary format to the tri-state format
-        for (var j=0;j<5;j++) { 
-            var cur = slave_dip.charAt(j);
-            if (cur == '0') {
-                codeword = codeword+"F";
-                console.log("New Codeword: "+codeword);
-            }
-            else {
-                codeword = codeword+"0";
-                console.log("New Codeword: "+codeword);
-            }
-        }
+            console.log("Slave DIP: "+slave_dip);
+            console.log("Master DIP: "+master_dip);
 
-        // Encode status from string to trit-state format
-        if (status == 'on') {
+            var codeword = '';
+            var codepart_master = '';
+            var codepart_slave = '';
+            console.log("Vendor: Intertechno");
+
+            // Information taken form here: http://www.fhemwiki.de/wiki/Intertechno_Code_Berechnung  
+            switch (master_dip) {
+              case "A":
+                codepart_master = "0000";
+                break;
+              case "B":
+                codepart_master = "F000";
+                break;
+              case "C":
+                codepart_master = "0F00";
+                break;
+              case "D":
+                codepart_master = "FF00";
+                break;
+              case "E":
+                codepart_master = "00F0";
+                break;
+              case "F":
+                codepart_master = "F0F0";
+                break;
+              case "G":
+                codepart_master = "0FF0";
+                break;
+              case "H":
+                codepart_master = "FFF0";
+                break;
+              case "I":
+                codepart_master = "000F";
+                break;
+              case "J":
+                codepart_master = "F00F";
+                break;
+              case "K":
+                codepart_master = "0F0F";
+                break;
+              case "L":
+                codepart_master = "FF0F";
+                break;
+              case "M":
+                codepart_master = "00FF";
+                break;
+              case "N":
+                codepart_master = "F0FF";
+                break;
+              case "O":
+                codepart_master = "0FFF";
+                break;
+              case "P":
+                codepart_master = "FFFF";
+                break;
+              default:
+                throw new Error('Master DIP '+master_dip+' not supported.');
+                break;
+            }
+
+            console.log("Codepart Master: "+codepart_master);
+
+            // Append codepart_master to codeword
+            codeword = codeword+codepart_master;
+
+            console.log("Codeword: "+codeword);
+
+            // Encode Slave DIP - use parseInt to strip zeroes from slave_dip  
+            switch (slave_dip) {
+              case 1:
+                codepart_slave = "0000";
+                break;
+              case 2:
+                codepart_slave = "F000";
+                break;
+              case 3:
+                codepart_slave = "0F00";
+                break;
+              case 4:
+                codepart_slave = "FF00";
+                break;
+              case 5:
+                codepart_slave = "00F0";
+                break;
+              case 6:
+                codepart_slave = "F0F0";
+                break;
+              case 7:
+                codepart_slave = "0FF0";
+                break;
+              case 8:
+                codepart_slave = "FFF0";
+                break;
+              case 9:
+                codepart_slave = "000F";
+                break;
+              case 10:
+                codepart_slave = "F00F";
+                break;
+              case 11:
+                codepart_slave = "0F0F";
+                break;
+              case 12:
+                codepart_slave = "FF0F";
+                break;
+              case 13:
+                codepart_slave = "00FF";
+                break;
+              case 14:
+                codepart_slave = "F0FF";
+                break;
+              case 15:
+                codepart_slave = "0FFF";
+                break;
+              case 16:
+                codepart_slave = "FFFF";
+                break;
+              default:
+                throw new Error('Slave DIP '+slave_dip+' not supported.');
+                break;
+            }
+
+            console.log("Codepart Slave: "+codepart_slave);
+            
+            // Append codepart_slave to codeword
+            codeword = codeword+codepart_slave;
+
+            console.log("Codeword: "+codeword);
+
+            // Next 2 bits are always "0F"
             codeword = codeword+"0F";
-        }
-        else if(status == 'off') {
-            codeword = codeword+"F0";
-        }
+            console.log("Codeword: "+codeword);
 
-        console.log("Codeword: "+codeword);
-        return codeword;
-    }
-}
-
-/**
- * Send a part of the tri-state code
- * Params: code_part
- * Returns: /
- */
-Interfaces.prototype.sendCodePart = function (code_part,cb) {
-    // console.log("\nFunction: SEND CODE PART");
-    var async = require('async');
-
-    // console.log("Code Part: "+code_part);
-    if (code_part == "0") {
-        // "Send" tri-state code for 0
-        // To understand what happens here, check comments on this.transmit function
-        // console.log("Transmitting Tri-State for 0");
-        async.series({
-            one: function(callback){
-                // console.log("Transmit Step 1: 1,3");
-                interfaces.transmit(1,3, function() {
-                    callback(null, 'one'); 
-                }); 
-            },
-            two: function(callback){
-                // console.log("Transmit Step 2: 1,3");
-                interfaces.transmit(1,3, function() {
-                    callback(null, 'two');
-                });
+            // Encode status from string to trit-state format
+            if (status == 'on') {
+                codeword = codeword+"FF";
             }
-        },
-        // optional callback
-        function(err, results){
-            // console.log("Code part sent successfully");
-            cb();
-        });
-        
-    }
-    else if (code_part == "F") {
-        // console.log("Transmitting Tri-State for F");
-
-        async.series({
-            one: function(callback){
-                // console.log("Transmit Step 1: 1,3");
-                interfaces.transmit(1,3, function() {
-                    callback(null, 'one');
-                });
-            },
-            tow: function(callback){
-                // console.log("Transmit Step 1: 3,1");
-                interfaces.transmit(3,1, function() {
-                    callback(null, 'two');
-                }); 
+            else if(status == 'off') {
+                codeword = codeword+"F0";
             }
-        },
-        // optional callback
-        function(err, results){
-            // console.log("Code part sent successfully");
-            cb();
-        });
-    }
-    else if (code_part == "1") {
-        // console.log("Transmitting Tri-State for 1");
 
-        async.series({
-            one: function(callback){
-                // console.log("Transmit Step 2: 3,1");
-                interfaces.transmit(3,1, function() {
-                    callback(null, 'one');
-                });
-            },
-            two: function(callback){
-                // console.log("Transmit Step 2: 3,1");
-                interfaces.transmit(3,1,function() {
-                    callback(null, 'two');
-                });
-            }
-        },
-        // optional callback
-        function(err, results){
-            // console.log("Code Part sent successfully");
-            cb();
-        });
-    }
-}
-
-/**
- * Send a Sync Message
- * Params: /
- * Returns: /
- */
-Interfaces.prototype.sendSync = function (cb) {
-    // console.log("\nFunction: SEND SYNC");
-    // Send a sync bit after that
-    if (this.protocol == 1) {
-        // console.log("Transmitting Sync for Protocol 1");
-        // console.log("Transmit: 1,31");
-        interfaces.transmit(1,31);
-        cb();
-    }
-    else if (this.protocol == 2) {
-        // console.log("Transmitting Sync for Protocol 2");
-        // console.log("Transmit: 1,10");
-        interfaces.transmit(1,10);
-        cb();
-    }
-    else if (this.protocol == 3) {
-        // console.log("Transmitting Sync for Protocol 3");
-        // console.log("Transmit: 1,71");
-        interfaces.transmit(1,71);
-        cb();
-    }
-}
-
-/**
- * Send the tri-state encoded message
- * Params: codeword (generated by this.getCodeword)
- * Returns: /
- */
-Interfaces.prototype.sendTriState = function (codeword,cb) {
-    // console.log("\nFunction: SEND TRISTATE");
-    var code_arr = codeword.split('');
-    // console.log("Code Array: "+code_arr);
-
-    var async = require('async');
-    
-    async.eachSeries(code_arr, interfaces.sendCodePart, function(err){
-        interfaces.sendSync;
-        // console.log("Code sent; Sending Sync;");
-    });
-    cb();
-}
-
-/**
- * Send the tri-state encoded message n times
- * Params: codeword (generated by this.getCodeword)
- * Returns: /
- */
-Interfaces.prototype.sendCode = function (codeword) {
-    // console.log("\nFunction: SEND CODE");
-    // console.log("CODEWORD: "+codeword);
-    // console.log("REPEATS: "+this.repeatTransmit);
-    var transmit_ct = this.repeatTransmit;
-
-    // This function "sends" the given codewordm which means it calls sub-functions which change the state and value of the underlying GPIO Pin
-    // The transmit is repeated n times according to the protocol (this.repeatTransmit)
-
-    // Set the PIN as Export
-    var enableTransmit = this.enableTransmit(this.PIN);
-  
-
-    var count = 0;
-    var async = require('async');
-    async.whilst(
-        function () { return count < transmit_ct; },
-        function (callback) {
-            console.log("Sending Codeword. Run "+count);
-            // console.log("To run: "+(transmit_ct-count));
-            count++;
-            interfaces.sendTriState(codeword,callback);
-        },
-        function (err) {
-            // console.log("Tri-State sent "+count+" times");
+            console.log("Codeword: "+codeword);
+            return codeword;
         }
-    );
-}
-
-/**
- * Transmit - change the state of the GPIO PIN
- * Params: high pulses count, low pulses count
- * Returns: /
- */
-Interfaces.prototype.transmit = function (highPulses,lowPulses,cb) {
-    // console.log("\nFunction: TRANSMIT");
-    // console.log("HIGH: "+highPulses);
-    // console.log("LOW: "+lowPulses);
-    // console.log("PulseLength: "+this.pulseLength);
-    var sleep_time_high = this.pulseLength * highPulses; 
-    var sleep_time_low = this.pulseLength * lowPulses;
-
-    /*
-    "0" Bit => 1/8 cycles on, 3/8 cycles off, 1/8 cycles An, 3/8 cycles off   -...-...
-    "1" Bit => 3/8 cycles on, 1/8 cycles off, 3/8 cycles An, 1/8 cycles off   ---.---.
-    "F" Bit => 1/8 cycles on, 3/8 cycles off, 3/8 cycles An, 1/8 cycles off   -...---.
-    "S" Bit => 1/8 cycles on, 31/8 cycles off -...............................
-    */
-    var async = require('async');
-    async.series({
-        one: function(callback){
-            // console.log("Step 1: Writing HIGH Sate to PIN");
-            interfaces.writePIN(interfaces.PIN, 1, function() {
-                callback(null, 'one');
-            });
-        },
-        two: function(callback){
-            // console.log("Step 2: Delay: "+sleep_time_high);
-            interfaces.delay(sleep_time_high, function() {
-                callback(null, 'two');
-            }); 
-        },
-        three: function(callback){
-            // console.log("Step 3: Writing LOW Sate to PIN");
-            interfaces.writePIN(interfaces.PIN, 0, function() {
-                callback(null, 'three');
-            });
-        },
-        four: function(callback){
-            // console.log("Step 4: Delay: "+sleep_time_high);
-            interfaces.delay(sleep_time_low, function() {
-                callback(null, 'four');
-            }); 
-        },
-        five: function(callback){
-            // console.log("Step 4: Delay: "+sleep_time_high);
-            interfaces.delay(sleep_time_low, function() {
-                callback(null, 'four');
-            }); 
-        }
-    },
-    // optional callback
-    function(err, results){
-        // console.log("Transmit successful");
-    });   
-
-    cb();
-}
-
-/**
- * Set PIN value - change the state of the GPIO PIN
- * Params: PIN to change and VALUE to write
- * Returns: /
- */
-Interfaces.prototype.writePIN = function (PIN,value,callback) {
-    // console.log("\nFunction: Write PIN");
-    // console.log("PIN: "+PIN);
-    // console.log("value: "+value);
-    
-    var exec = require('child_process').exec;
-    function puts(error, stdout, stderr) { }
-    exec('echo "'+value+'" > /sys/class/gpio/gpio'+PIN+'/value', puts);
-
-    callback();
-}
-
-/**
- * Just wait for given amount of ms
- * Params: microseconds
- * Returns: /
- */
-Interfaces.prototype.delay = function (microseconds,callback) {
-    var sleep = require('sleep');
-    // console.log("\nFunction: delay");
-    // console.log("DELAY: "+microseconds);
-    
-    var e = new Date().getTime() + (microseconds / 1000);
-    console.log("First date: "+e)
-
-    var async = require('async');
-
-    async.whilst(
-        function () { return new Date().getTime() < e; },
-        function (callback) {
-            console.log("While Date: "+e);
-            callback(null,1)
-        },
-        function (err) {
-        }
-    );
-
-    // sleep.usleep(microseconds);
-    callback();
+    }
 }
 
 /**
@@ -632,7 +526,12 @@ app.get('/enabletransmit', function (request, response) {
 
 app.get('/getcodeword', function (request, response) {
     try {
-        response.json(interfaces.getCodeword("10000","10000","on"));
+        interfaces.master_dip = "M";
+        interfaces.slave_dip = "2";
+        interfaces.vendor = "elro";
+        interfaces.model = "ab440sc";
+        interfaces.interface = "433";
+        response.json(interfaces.getCodeword("10000","11110","on"));
     } catch (exeception) {
         response.send(404);
     }

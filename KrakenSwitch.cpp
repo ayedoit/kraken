@@ -1,3 +1,5 @@
+#include "KrakenSwitch.h"
+
 KrakenSwitch::KrakenSwitch() {
   this->transmitterPin = -1;
   this->setPulseLength(350);
@@ -9,14 +11,14 @@ KrakenSwitch::KrakenSwitch() {
   * Sets the protocol to send.
   */
 void KrakenSwitch::setProtocol(int protocol) {
-  this->nProtocol = nProtocol;
-  if (nProtocol == 1){
+  this->protocol = protocol;
+  if (protocol == 1){
     this->setPulseLength(350);
   }
-  else if (nProtocol == 2) {
+  else if (protocol == 2) {
     this->setPulseLength(650);
   }
-  else if (nProtocol == 3) {
+  else if (protocol == 3) {
     this->setPulseLength(100);
   }
 }
