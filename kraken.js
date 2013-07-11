@@ -533,6 +533,14 @@ app.get('/interfaces', function (request, response) {
 });
 
 /**
+ * HTTP GET /discover
+ * Returns: Code 200 and a "Hello" message
+ */
+app.get('/discover', function (request, response) {
+    response.json("{'msg':'here comes the kraken!'}");
+});
+
+/**
  * HTTP GET /interfaces/:name
  * Param: :name is the unique identifier of the interface you want to retrieve
  * Returns: the interface with the specified :name in a JSON format
