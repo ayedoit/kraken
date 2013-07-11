@@ -123,7 +123,8 @@ function Interfaces() {
 
     // Time
     var now = new Date();
-    this.date = now.format("d.m.Y hh:MM:ss");
+    // this.date = now.format("d.m.Y hh:MM:ss");
+    this.date = "";
 
     // Default for Protocol 1 (which fits for most devices)
     this.pulseLength = 350;
