@@ -135,25 +135,33 @@ function Interfaces() {
     // Debug?
     this.debug = false;
 
+    // Version
+    this.version = "0.0.2";
+
     // Values that will be set as soon as a device has been chosen
     this.master_dip = "";
     this.slave_dip = "";
     this.vendor = "";
     this.model = "";
     this.interface = "";
+    this.action = "";
+    this.status = "";
 }
+
 /**
  * Set params for execution of commands
  * Param: interface,vendor,model,protocol,master_dip,slave_dip
  * Returns: all currently known data regarding this interface
  */
-Interfaces.prototype.setParams = function (interface,vendor,model,protocol,master_dip,slave_dip) {
+Interfaces.prototype.setParams = function (interface,vendor,model,protocol,master_dip,slave_dip,action,status) {
     this.interface = interface;
     this.vendor = vendor;
     this.model = model;
     this.protocol = protocol;
     this.master_dip = master_dip;
     this.slave_dip = slave_dip;
+    this.action = action;
+    this.status = status;
 
     if (this.debug) {
         console.log(this.date+" ## Function: interfaces.setParams ##");
@@ -163,6 +171,8 @@ Interfaces.prototype.setParams = function (interface,vendor,model,protocol,maste
         console.log(this.date+" Protocol: "+interfaces.protocol);
         console.log(this.date+" master_dip: "+interfaces.master_dip);
         console.log(this.date+" slave_dip: "+interfaces.slave_dip);
+        console.log(this.date+" action: "+interfaces.action);
+        console.log(this.date+" status: "+interfaces.status);
     }
 }
 
@@ -186,22 +196,12 @@ Interfaces.prototype.getInterface = function (interface) {
  * Returns: array of interfaces with corresponding metadata
  */
 Interfaces.prototype.getInterfaces = function () {
-    return this.interfaces;
-}
+    interfaces = this.interfaces;
 
-/**
- * Retrieve a specific interface
- * Param: interface-name
- * Returns: array of vendors with corresponding metadata for this interface
- */
-Interfaces.prototype.getInterface = function (interface_name) {
-    var interface = this.interfaces.filter(function(item) {
-        return item.name == interface_name;
-    })[0];
-    if (null == interface) {
-        throw new Error('Interface not found');
+    if (null == interfaces) {
+        throw new Error('No interfaces not found');
     }
-    return interface;
+    return interfaces;
 }
 
 /**
@@ -233,6 +233,7 @@ Interfaces.prototype.getVendor = function (interface_name,vendor_name) {
         }
         return vendor;
     }
+    throw new Error('Operation not possible [getVendor/'+interface_name+'/'+vendor_name+']');
 }
 
 /**
@@ -271,10 +272,13 @@ Interfaces.prototype.getModel = function (interface_name,vendor_name,model_name)
                     return item.name == model_name;
                 })[0];
             }
+            if (null == model) {
+                throw new Error('Model not found');
+            }
             return model;
-        }
-        
+        }  
     }
+    throw new Error('Operation not possible [getModel/'+interface_name+'/'+vendor_name+'/'+model_name+']');
 }
 
 /**
@@ -538,7 +542,12 @@ app.get('/interfaces', function (request, response) {
  * Returns: Code 200 and a "Hello" message
  */
 app.get('/discover', function (request, response) {
-    response.json("{'msg':'here comes the kraken!'}");
+    response.json(
+        {
+            "whoami":"kraken",
+            "version":interfaces.version,
+        }
+    );
 });
 
 /**
@@ -644,22 +653,22 @@ app.get('/sendcode', function (request, response) {
 
 
 /**
- * HTTP POST /tasks/
- * Body Param: the JSON task you want to create
+ * HTTP POST /interfaces/:interface_name/vendors/:vendor_name/models/:model_name
+ * Body Param: the master_dip and slave_dip of the device you want to act on and the action you want to execute
  * Returns: 200 HTTP code
  */
 app.post('/interfaces/:interface_name/vendors/:vendor_name/models/:model_name', function (request, response) {
     var device_data = request.body;
-    response.json(device_data);
-    console.log(device_data.master_dip,device_data.slave_dip);
 
-    // taskRepository.save({
-    //     title: task.title || 'Default title',
-    //     description: task.description || 'Default description',
-    //     dueDate: task.dueDate,
-    //     status: task.status || 'not completed'
-    // });
-    // response.send(200);
+    // Set the values to the class variables
+    interfaces.setParams(interface_name,vendor_name,model_name,'1',device_data.master_dip,device_data.slave_dip,device_data.action,device_data.status);
+
+    // Get the Codeword
+    // Currently only support "set_status"
+    var codeword = interfaces.getCodeword(interfaces.master_dip,interfaces.slave_dip,interfaces.status);
+
+    // Call local binary to execute task
+    
 });
 // /**
 //  * HTTP PUT /tasks/
