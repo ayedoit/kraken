@@ -41,7 +41,7 @@ check_make_ok() {
   echo
   echo "Module 'Express' for node"
   cd /opt/node
-  sudo /op/node/bin/npm install express
+  sudo /opt/node/bin/npm install express
 
   echo
   echo "Here comes the Kraken"
