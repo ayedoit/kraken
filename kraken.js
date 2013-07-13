@@ -189,7 +189,7 @@ Interfaces.prototype.getInterface = function (interface_name) {
         return item.name == interface_name;
     })[0];
     if (null == result) {
-        throw new Error('Interface "'+interface_name+'" not found');
+        throw new Error('[kraken] Interface "'+interface_name+'" not found');
     }
     return result;
 }
@@ -202,7 +202,7 @@ Interfaces.prototype.getInterfaces = function () {
     interfaces = this.interfaces;
 
     if (null == interfaces) {
-        throw new Error('No interfaces not found');
+        throw new Error('[kraken] No interfaces not found');
     }
     return interfaces;
 }
@@ -218,7 +218,7 @@ Interfaces.prototype.getVendor = function (interface_name,vendor_name) {
     })[0];
 
     if (null == interface) {
-        throw new Error("Interface '"+interface_name+"' not found");
+        throw new Error("[kraken] Interface '"+interface_name+"' not found");
     }
     else {
         if (vendor_name == 'all') {
@@ -232,11 +232,11 @@ Interfaces.prototype.getVendor = function (interface_name,vendor_name) {
         }
 
         if (null == vendor) {
-            throw new Error("Vendor '"+vendor_name+"' not found");
+            throw new Error("[kraken] Vendor '"+vendor_name+"' not found");
         }
         return vendor;
     }
-    throw new Error('Operation not possible [getVendor/'+interface_name+'/'+vendor_name+']');
+    throw new Error('[kraken] Operation not possible [getVendor/'+interface_name+'/'+vendor_name+']');
 }
 
 /**
@@ -245,16 +245,24 @@ Interfaces.prototype.getVendor = function (interface_name,vendor_name) {
  * Returns: array of vendor-data
  */
 Interfaces.prototype.getModel = function (interface_name,vendor_name,model_name) {
+    if (this.debug) {
+        console.log(this.date+" ## Function: interfaces.getModel ##");
+        console.log(this.date+" Interface: "+interface_name);
+        console.log(this.date+" Vendor: "+vendor_name);
+        console.log(this.date+" Model: "+model_name);
+
+    }
+
     var interface = this.interfaces.filter(function(item) {
         return item.name == interface_name;
     })[0];
 
     if (null == interface) {
-        throw new Error("Interface '"+interface_name+"' not found");
+        throw new Error("[kraken] Interface '"+interface_name+"' not found");
     }
     else {
         if (vendor_name == 'all') {
-            throw new Error('Cannot deliver models for all vendors');
+            throw new Error('[kraken] Cannot deliver models for all vendors');
         }
         else {
             var vendor = interface.vendors.filter(function(item) {
@@ -263,7 +271,7 @@ Interfaces.prototype.getModel = function (interface_name,vendor_name,model_name)
         }
 
         if (null == vendor) {
-            throw new Error("Vendor "+vendor_name+" not found");
+            throw new Error("[kraken] Vendor "+vendor_name+" not found");
         }
         else {
             // Get models
@@ -276,12 +284,12 @@ Interfaces.prototype.getModel = function (interface_name,vendor_name,model_name)
                 })[0];
             }
             if (null == model) {
-                throw new Error("Model '"+model_name+"' not found");
+                throw new Error("[kraken] Model '"+model_name+"' not found");
             }
             return model;
         }  
     }
-    throw new Error('Operation not possible [getModel/'+interface_name+'/'+vendor_name+'/'+model_name+']');
+    throw new Error('[kraken] Operation not possible [getModel/'+interface_name+'/'+vendor_name+'/'+model_name+']');
 }
 
 /**
@@ -363,7 +371,7 @@ Interfaces.prototype.getCodeword = function (master_dip,slave_dip,status) {
             codepart_master = "FFFF";
             break;
           default:
-            throw new Error('Master DIP "'+master_dip+'" not supported.');
+            throw new Error('[kraken] Master DIP "'+master_dip+'" not supported.');
             break;
         }
 
@@ -421,7 +429,7 @@ Interfaces.prototype.getCodeword = function (master_dip,slave_dip,status) {
             codepart_slave = "FFFF";
             break;
           default:
-            throw new Error('Slave DIP "'+slave_dip+'" not supported.');
+            throw new Error('[kraken] Slave DIP "'+slave_dip+'" not supported.');
             break;
         }
         
@@ -687,6 +695,53 @@ app.post('/interfaces/:interface_name/vendors/:vendor_name/models/:model_name', 
         });
     }
 
+    // Determine if interface, vendor & model exist in our DB
+    // If any of the control variables is false, stop!
+    var interface_exists = false;
+    var vendor_exists = false;
+    var model_exists = false;
+
+    try {
+        interface = interfaces.getInterface(interface_name);
+
+        interface_exists = true;
+
+        // Check Vendor
+        try {
+            vendor = interfaces.getVendor(interface_name,vendor_name);
+
+            vendor_exists = true;
+
+            // Check Model
+            try {
+                model = interfaces.getModel(interface_name,vendor_name,model_name);
+
+                model_exists = true;
+            }
+            catch (exception) {
+                if (this.debug) {
+                    console.log(this.date+" ERROR: "+exception.message);
+                }
+                response.send(exception.message,500);
+                return;
+            }
+        }
+        catch (exception) {
+            if (this.debug) {
+                console.log(this.date+" ERROR: "+exception.message);
+            }
+            response.send(exception.message,500);
+            return;
+        }
+    }
+    catch (exception) {
+        if (this.debug) {
+            console.log(this.date+" ERROR: "+exception.message);
+        }
+        response.send(exception.message,500);
+        return;
+    }
+    
     // Set the values to the class variables
     interfaces.setParams(interface_name,vendor_name,model_name,'1',master_dip,slave_dip,action,status);
 
