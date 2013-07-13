@@ -26,17 +26,17 @@ check_make_ok() {
   sudo rm -r wiringPi
   sudo git clone git://git.drogon.net/wiringPi
   cd wiringPi
-  ./build
+  sudo ./build
   cd ..
 
   echo
   echo "Node.js"
   cd /usr/local/src
   sudo mkdir -p /opt/node  
-  wget http://nodejs.org/dist/v0.10.4/node-v0.10.4-linux-arm-pi.tar.gz
+  sudo wget http://nodejs.org/dist/v0.10.4/node-v0.10.4-linux-arm-pi.tar.gz
   sudo tar xvzf node-v0.10.4-linux-arm-pi.tar.gz
   sudo cp -r node-v0.10.4-linux-arm-pi/* /opt/node
-  rm -r node-v0.10.4-linux-arm-pi*
+  sudo rm -r node-v0.10.4-linux-arm-pi*
 
   echo
   echo "Module 'Express' for node"
@@ -53,9 +53,9 @@ check_make_ok() {
   check_make_ok
   cd ..
   sudo cp init.d/kraken /etc/init.d/.
-  update-rc.d kraken defaults
+  sudo update-rc.d kraken defaults
   sudo cp src/kraken-sendcode /usr/local/bin/.
-  /etc/init.d/kraken start
+  sudo /etc/init.d/kraken start
 
 echo
 echo All Done.
