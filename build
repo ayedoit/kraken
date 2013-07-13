@@ -31,10 +31,10 @@ check_make_ok() {
   echo
   echo "Node.js"
   cd /usr/local/src
-  sudo mkdir /opt/node  
+  sudo mkdir -p /opt/node  
   wget http://nodejs.org/dist/v0.10.4/node-v0.10.4-linux-arm-pi.tar.gz
   sudo tar xvzf node-v0.10.4-linux-arm-pi.tar.gz
-  sudo cp -r node-v0.10.2-linux-arm-pi/* /opt/node
+  sudo cp -r node-v0.10.4-linux-arm-pi/* /opt/node
   rm -r node-v0.10.4-linux-arm-pi*
 
   echo
