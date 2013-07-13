@@ -1,0 +1,51 @@
+#!/bin/sh
+
+check_make_ok() {
+  if [ $? != 0 ]; then
+    echo ""
+    echo "Make Failed..."
+    echo "Please check the messages and fix any problems. If you're still stuck,"
+    echo "then please email all the output and as many details as you can to"
+    echo "  hello@fabianpeter.de"
+    echo ""
+    exit 1
+  fi
+}
+
+  echo "Kraken Setup"
+  echo "====================="
+  echo
+
+  echo
+  echo "First: Git"
+  sudo apt-get -y install git
+
+#  echo
+#  echo "Node.js"
+#  cd /usr/local/src
+#  sudo mkdir /opt/node  
+#  wget http://nodejs.org/dist/v0.10.4/node-v0.10.4-linux-arm-pi.tar.gz
+#  sudo tar xvzf node-v0.10.4-linux-arm-pi.tar.gz
+#  sudo cp -r node-v0.10.2-linux-arm-pi/* /opt/node
+#  rm -r node-v0.10.4-linux-arm-pi*
+
+#  echo
+#  echo "Module 'Express' for node"
+#  cd /opt/node
+#  sudo npm install express
+
+  echo
+  echo "Here comes the Kraken"
+  cd /opt
+  sudo git clone https://github.com/ayedoit/kraken.git
+  cd kraken/src
+  sudo make
+  check_make_ok
+  cd ..
+  sudo cp init.d/kraken /etc/init.d/.
+  update-rc.d kraken defaults
+  sudo cp src/kraken-sendcode /usr/local/bin/.
+  
+echo
+echo All Done.
+echo ""
