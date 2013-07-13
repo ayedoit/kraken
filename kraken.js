@@ -136,7 +136,10 @@ function Interfaces() {
     this.debug = false;
 
     // Version
-    this.version = "0.0.2";
+    this.version = "0.0.3";
+
+    // Path of "kraken-sendcode" binary
+    this.kraken_sendcode = '/home/pi/dev/kraken/kraken-sendcode';
 
     // Values that will be set as soon as a device has been chosen
     this.master_dip = "";
@@ -181,12 +184,12 @@ Interfaces.prototype.setParams = function (interface,vendor,model,protocol,maste
  * Param: Interface name (433,868,xbee)
  * Returns: all currently known data regarding this interface
  */
-Interfaces.prototype.getInterface = function (interface) {
+Interfaces.prototype.getInterface = function (interface_name) {
     var result = this.interfaces.filter(function(item) {
-        return item.name == interface;
+        return item.name == interface_name;
     })[0];
     if (null == result) {
-        throw new Error('Interface not found');
+        throw new Error('Interface "'+interface_name+'" not found');
     }
     return result;
 }
@@ -215,7 +218,7 @@ Interfaces.prototype.getVendor = function (interface_name,vendor_name) {
     })[0];
 
     if (null == interface) {
-        throw new Error('Interface not found');
+        throw new Error("Interface '"+interface_name+"' not found");
     }
     else {
         if (vendor_name == 'all') {
@@ -229,7 +232,7 @@ Interfaces.prototype.getVendor = function (interface_name,vendor_name) {
         }
 
         if (null == vendor) {
-            throw new Error('Vendor not found');
+            throw new Error("Vendor '"+vendor_name+"' not found");
         }
         return vendor;
     }
@@ -247,7 +250,7 @@ Interfaces.prototype.getModel = function (interface_name,vendor_name,model_name)
     })[0];
 
     if (null == interface) {
-        throw new Error('Interface not found');
+        throw new Error("Interface '"+interface_name+"' not found");
     }
     else {
         if (vendor_name == 'all') {
@@ -260,7 +263,7 @@ Interfaces.prototype.getModel = function (interface_name,vendor_name,model_name)
         }
 
         if (null == vendor) {
-            throw new Error('Vendor not found');
+            throw new Error("Vendor "+vendor_name+" not found");
         }
         else {
             // Get models
@@ -273,7 +276,7 @@ Interfaces.prototype.getModel = function (interface_name,vendor_name,model_name)
                 })[0];
             }
             if (null == model) {
-                throw new Error('Model not found');
+                throw new Error("Model '"+model_name+"' not found");
             }
             return model;
         }  
@@ -360,7 +363,7 @@ Interfaces.prototype.getCodeword = function (master_dip,slave_dip,status) {
             codepart_master = "FFFF";
             break;
           default:
-            throw new Error('Master DIP '+master_dip+' not supported.');
+            throw new Error('Master DIP "'+master_dip+'" not supported.');
             break;
         }
 
@@ -418,7 +421,7 @@ Interfaces.prototype.getCodeword = function (master_dip,slave_dip,status) {
             codepart_slave = "FFFF";
             break;
           default:
-            throw new Error('Slave DIP '+slave_dip+' not supported.');
+            throw new Error('Slave DIP "'+slave_dip+'" not supported.');
             break;
         }
         
@@ -531,9 +534,9 @@ app.get('/interfaces', function (request, response) {
         response.json({interfaces: interfaces.getInterfaces()});
     } catch (exception) {
         if (this.debug) {
-            console.log(this.date+" ERROR: "+exception);
+            console.log(this.date+" ERROR: "+exception.message);
         }
-        response.send(404).send(exception);
+        response.send(exception.message,500);
     }
 });
 
@@ -562,9 +565,9 @@ app.get('/interfaces/:name', function (request, response) {
         response.json(interfaces.getInterface(if_name));
     } catch (exception) {
         if (this.debug) {
-            console.log(this.date+" ERROR: "+exception);
+            console.log(this.date+" ERROR: "+exception.message);
         }
-        response.send(404).send(exception);
+        response.send(exception.message,500);
     }
     
 });
@@ -582,9 +585,9 @@ app.get('/interfaces/:interface_name/vendors/:vendor_name', function (request, r
         response.json(interfaces.getVendor(if_name,vendor_name));
     } catch (exception) {
         if (this.debug) {
-            console.log(this.date+" ERROR: "+exception);
+            console.log(this.date+" ERROR: "+exception.message);
         }
-        response.send(404).send(exception);
+        response.send(exception.message,500);
     }
     
 });
@@ -602,7 +605,10 @@ app.get('/interfaces/:interface_name/vendors/:vendor_name/models/:model_name', f
     try {
         response.json(interfaces.getModel(if_name,vendor_name,model_name));
     } catch (exception) {
-        response.send(404).send(exception);
+        if (this.debug) {
+            console.log(this.date+" ERROR: "+exception.message);
+        }
+        response.send(exception.message,500);
     }
     
 });
@@ -613,9 +619,9 @@ app.get('/enabletransmit', function (request, response) {
         response.json(interfaces.enableTransmit(17));
     } catch (exception) {
         if (this.debug) {
-            console.log(this.date+" ERROR: "+exception);
+            console.log(this.date+" ERROR: "+exception.message);
         }
-        response.send(404).send(exception);
+        response.send(exception.message,500);
     }
     
 });
@@ -631,9 +637,9 @@ app.get('/getcodeword', function (request, response) {
         response.json(interfaces.getCodeword("10000","11110","on"));
     } catch (exception) {
         if (this.debug) {
-            console.log(this.date+" ERROR: "+exception);
+            console.log(this.date+" ERROR: "+exception.message);
         }
-        response.send(404).send(exception);
+        response.send(exception.message,500);
     }
     
 });
@@ -643,9 +649,9 @@ app.get('/sendcode', function (request, response) {
         response.json(interfaces.sendCode("0FFFF0FFFF0F"));
     } catch (exception) {
         if (this.debug) {
-            console.log(this.date+" ERROR: "+exception);
+            console.log(this.date+" ERROR: "+exception.message);
         }
-        response.send(404).send(exception);
+        response.send(exception.message,500);
     }
     
 });
@@ -659,16 +665,65 @@ app.get('/sendcode', function (request, response) {
  */
 app.post('/interfaces/:interface_name/vendors/:vendor_name/models/:model_name', function (request, response) {
     var device_data = request.body;
+    console.log("Device Data: "+device_data.master_dip);
+    var interface_name = request.params.interface_name;
+    var vendor_name = request.params.vendor_name;
+    var model_name = request.params.model_name;
+    var master_dip = device_data.master_dip;
+    var slave_dip = device_data.slave_dip;
+    var action = device_data.action;
+    var status = device_data.status;
+
+    if (model_name == 'all' || vendor_name == 'all') {
+        response.json({
+            "interface_name":interface_name,
+            "vendor_name":vendor_name,
+            "model_name":model_name,
+            "master_dip":master_dip,
+            "slave_dip":slave_dip,
+            "action":action,
+            "status":status,
+            "result":"error",
+            "response":"Value 'all' for vendor or model is not valid in this context"
+        });
+    }
 
     // Set the values to the class variables
-    interfaces.setParams(interface_name,vendor_name,model_name,'1',device_data.master_dip,device_data.slave_dip,device_data.action,device_data.status);
+    interfaces.setParams(interface_name,vendor_name,model_name,'1',master_dip,slave_dip,action,status);
 
     // Get the Codeword
-    // Currently only support "set_status"
+    // Currently only supports "set_status"
     var codeword = interfaces.getCodeword(interfaces.master_dip,interfaces.slave_dip,interfaces.status);
 
-    // Call local binary to execute task
-    
+    // Execute command
+    var exec = require('child_process').exec;
+    var child = exec(interfaces.kraken_sendcode+" "+codeword, function (error, stdout, stderr) {
+        if (error !== null) {
+            response.json({
+                "interface_name":interface_name,
+                "vendor_name":vendor_name,
+                "model_name":model_name,
+                "master_dip":master_dip,
+                "slave_dip":slave_dip,
+                "action":action,
+                "status":status,
+                "result":"error",
+                "response":error
+            });
+        }
+    });
+
+    // Success!
+    response.json({
+        "interface_name":interface_name,
+        "vendor_name":vendor_name,
+        "model_name":model_name,
+        "master_dip":master_dip,
+        "slave_dip":slave_dip,
+        "action":action,
+        "status":status,
+        "result":"success"
+    });
 });
 // /**
 //  * HTTP PUT /tasks/
