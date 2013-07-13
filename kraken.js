@@ -139,7 +139,7 @@ function Interfaces() {
     this.version = "0.0.3";
 
     // Path of "kraken-sendcode" binary
-    this.kraken_sendcode = '/home/pi/dev/kraken/kraken-sendcode';
+    this.kraken_sendcode = '/usr/local/bin/kraken-sendcode';
 
     // Values that will be set as soon as a device has been chosen
     this.master_dip = "";
