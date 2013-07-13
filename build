@@ -23,6 +23,7 @@ check_make_ok() {
   echo
   echo "WiringPi"
   cd /usr/local/src
+  sudo rm -r wiringPi
   sudo git clone git://git.drogon.net/wiringPi
   cd wiringPi
   ./build
@@ -45,6 +46,7 @@ check_make_ok() {
   echo
   echo "Here comes the Kraken"
   cd /opt
+  sudo rm -r kraken
   sudo git clone https://github.com/ayedoit/kraken.git
   cd kraken/src
   sudo make
