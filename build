@@ -40,7 +40,7 @@ check_make_ok() {
   echo
   echo "Module 'Express' for node"
   cd /opt/node
-  sudo npm install express
+  sudo /op/node/bin/npm install express
 
   echo
   echo "Here comes the Kraken"
