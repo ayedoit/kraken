@@ -40,6 +40,7 @@ check_make_ok() {
 
   echo
   echo "Module 'Express' for node"
+  echo "This may take a while and also hang a little bit. Don't worry - it's normal!"
   cd /opt/node
   sudo /opt/node/bin/npm install express
 
