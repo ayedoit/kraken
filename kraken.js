@@ -665,7 +665,6 @@ app.get('/sendcode', function (request, response) {
  */
 app.post('/interfaces/:interface_name/vendors/:vendor_name/models/:model_name', function (request, response) {
     var device_data = request.body;
-    console.log("Device Data: "+device_data.master_dip);
     var interface_name = request.params.interface_name;
     var vendor_name = request.params.vendor_name;
     var model_name = request.params.model_name;
