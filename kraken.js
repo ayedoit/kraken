@@ -102,8 +102,36 @@ function Interfaces() {
                             ]
                         },
                         {
+                            "name":"par1500",
+                            "clear_name":"PAR-1500",
+                            "protocol":"1",
+                            "actions": [
+                                {
+                                    "name":"set_status",
+                                    "clear_name":"Status setzen"
+                                }
+                            ]
+                        },
+                        {
                             "name":"itlr3500",
                             "clear_name":"ITLR 3500",
+                            "protocol":"1",
+                            "actions": [
+                                {
+                                    "name":"set_status",
+                                    "clear_name":"Status setzen"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name":"dario",
+                    "clear_name":"Dario",
+                    "models": [
+                        {
+                            "name":"dmv-7008as",
+                            "clear_name":"DMV 7008AS",
                             "protocol":"1",
                             "actions": [
                                 {
@@ -133,7 +161,7 @@ function Interfaces() {
     this.protocol = 1;
 
     // Debug?
-    this.debug = false;
+    this.debug = true;
 
     // Version
     this.version = "0.0.3";
@@ -320,137 +348,340 @@ Interfaces.prototype.getCodeword = function (master_dip,slave_dip,status) {
         var codepart_master = '';
         var codepart_slave = '';
 
-        // Information taken form here: http://www.fhemwiki.de/wiki/Intertechno_Code_Berechnung  
-        switch (master_dip) {
-          case "A":
-            codepart_master = "0000";
-            break;
-          case "B":
-            codepart_master = "F000";
-            break;
-          case "C":
-            codepart_master = "0F00";
-            break;
-          case "D":
-            codepart_master = "FF00";
-            break;
-          case "E":
-            codepart_master = "00F0";
-            break;
-          case "F":
-            codepart_master = "F0F0";
-            break;
-          case "G":
-            codepart_master = "0FF0";
-            break;
-          case "H":
-            codepart_master = "FFF0";
-            break;
-          case "I":
-            codepart_master = "000F";
-            break;
-          case "J":
-            codepart_master = "F00F";
-            break;
-          case "K":
-            codepart_master = "0F0F";
-            break;
-          case "L":
-            codepart_master = "FF0F";
-            break;
-          case "M":
-            codepart_master = "00FF";
-            break;
-          case "N":
-            codepart_master = "F0FF";
-            break;
-          case "O":
-            codepart_master = "0FFF";
-            break;
-          case "P":
-            codepart_master = "FFFF";
-            break;
-          default:
-            throw new Error('[kraken] Master DIP "'+master_dip+'" not supported.');
-            break;
+		if (this.model == 'par1500') {
+			// Information taken form here: http://www.fhemwiki.de/wiki/Intertechno_Code_Berechnung  
+			switch (master_dip) {
+				case "A":
+					codepart_master = "0000";
+					break;
+				case "B":
+					codepart_master = "F000";
+					break;
+				case "C":
+					codepart_master = "0F00";
+					break;
+				case "D":
+					codepart_master = "FF00";
+					break;
+				case "E":
+					codepart_master = "00F0";
+					break;
+				case "F":
+					codepart_master = "F0F0";
+					break;
+				case "G":
+					codepart_master = "0FF0";
+					break;
+				case "H":
+					codepart_master = "FFF0";
+					break;
+				case "I":
+					codepart_master = "000F";
+					break;
+				case "J":
+					codepart_master = "F00F";
+					break;
+				case "K":
+					codepart_master = "0F0F";
+					break;
+				case "L":
+					codepart_master = "FF0F";
+					break;
+				case "M":
+					codepart_master = "00FF";
+					break;
+				case "N":
+					codepart_master = "F0FF";
+					break;
+				case "O":
+					codepart_master = "0FFF";
+					break;
+				case "P":
+					codepart_master = "FFFF";
+					break;
+				default:
+					throw new Error('[kraken] Master DIP "'+master_dip+'" not supported.');
+					break;
+			}
+
+			// Append codepart_master to codeword
+			codeword = codeword+codepart_master;
+
+			// Encode Slave DIP - use parseInt to strip zeroes from slave_dip  
+			switch (slave_dip) {
+			case 1:
+				codepart_slave = "0000";
+				break;
+			case 2:
+				codepart_slave = "F000";
+				break;
+			case 3:
+				codepart_slave = "0F00";
+				break;
+			case 4:
+				codepart_slave = "FF00";
+				break;
+			case 5:
+				codepart_slave = "00F0";
+				break;
+			case 6:
+				codepart_slave = "F0F0";
+				break;
+			case 7:
+				codepart_slave = "0FF0";
+				break;
+			case 8:
+				codepart_slave = "FFF0";
+				break;
+			case 9:
+				codepart_slave = "000F";
+				break;
+			case 10:
+				codepart_slave = "F00F";
+				break;
+			case 11:
+				codepart_slave = "0F0F";
+				break;
+			case 12:
+				codepart_slave = "FF0F";
+				break;
+			case 13:
+				codepart_slave = "00FF";
+				break;
+			case 14:
+				codepart_slave = "F0FF";
+				break;
+			case 15:
+				codepart_slave = "0FFF";
+				break;
+			case 16:
+				codepart_slave = "FFFF";
+				break;
+			default:
+				throw new Error('[kraken] Slave DIP "'+slave_dip+'" not supported.');
+				break;
+			}
+		
+			// Append codepart_slave to codeword
+			codeword = codeword+codepart_slave;
+
+			// Next 2 bits are always "0F"
+			codeword = codeword+"0F";
+
+			// Encode status from string to trit-state format
+			if (status == 'on') {
+				codeword = codeword+"FF";
+			}
+			else if(status == 'off') {
+				codeword = codeword+"F0";
+			}
+
+			if (this.debug) {
+				console.log(this.date+" Codeword: "+codeword);
+			}
+		}
+		else {
+
+			// Information taken form here: http://www.fhemwiki.de/wiki/Intertechno_Code_Berechnung  
+			switch (master_dip) {
+			case "A":
+				codepart_master = "0000";
+				break;
+			case "B":
+				codepart_master = "F000";
+				break;
+			case "C":
+				codepart_master = "0F00";
+				break;
+			case "D":
+				codepart_master = "FF00";
+				break;
+			case "E":
+				codepart_master = "00F0";
+				break;
+			case "F":
+				codepart_master = "F0F0";
+				break;
+			case "G":
+				codepart_master = "0FF0";
+				break;
+			case "H":
+				codepart_master = "FFF0";
+				break;
+			case "I":
+				codepart_master = "000F";
+				break;
+			case "J":
+				codepart_master = "F00F";
+				break;
+			case "K":
+				codepart_master = "0F0F";
+				break;
+			case "L":
+				codepart_master = "FF0F";
+				break;
+			case "M":
+				codepart_master = "00FF";
+				break;
+			case "N":
+				codepart_master = "F0FF";
+				break;
+			case "O":
+				codepart_master = "0FFF";
+				break;
+			case "P":
+				codepart_master = "FFFF";
+				break;
+			default:
+				throw new Error('[kraken] Master DIP "'+master_dip+'" not supported.');
+				break;
+			}
+
+			// Append codepart_master to codeword
+			codeword = codeword+codepart_master;
+
+			// Encode Slave DIP - use parseInt to strip zeroes from slave_dip  
+			switch (slave_dip) {
+			case 1:
+				codepart_slave = "0000";
+				break;
+			case 2:
+				codepart_slave = "F000";
+				break;
+			case 3:
+				codepart_slave = "0F00";
+				break;
+			case 4:
+				codepart_slave = "FF00";
+				break;
+			case 5:
+				codepart_slave = "00F0";
+				break;
+			case 6:
+				codepart_slave = "F0F0";
+				break;
+			case 7:
+				codepart_slave = "0FF0";
+				break;
+			case 8:
+				codepart_slave = "FFF0";
+				break;
+			case 9:
+				codepart_slave = "000F";
+				break;
+			case 10:
+				codepart_slave = "F00F";
+				break;
+			case 11:
+				codepart_slave = "0F0F";
+				break;
+			case 12:
+				codepart_slave = "FF0F";
+				break;
+			case 13:
+				codepart_slave = "00FF";
+				break;
+			case 14:
+				codepart_slave = "F0FF";
+				break;
+			case 15:
+				codepart_slave = "0FFF";
+				break;
+			case 16:
+				codepart_slave = "FFFF";
+				break;
+			default:
+				throw new Error('[kraken] Slave DIP "'+slave_dip+'" not supported.');
+				break;
+			}
+			
+			// Append codepart_slave to codeword
+			codeword = codeword+codepart_slave;
+
+			// Next 2 bits are always "0F"
+			codeword = codeword+"0F";
+
+			// Encode status from string to trit-state format
+			if (status == 'on') {
+				codeword = codeword+"FF";
+			}
+			else if(status == 'off') {
+				codeword = codeword+"F0";
+			}
+
+			if (this.debug) {
+				console.log(this.date+" Codeword: "+codeword);
+			}
+		}
+
+        return codeword;
+    }
+    else if (this.vendor == 'dario') {
+        var codeword = "";
+        /* Our codeword will have 21 bits
+            Bit 1: Start Bit. Always 1
+            Bit 2-7: Encoded SYSTEM-CODE (which is the master_dip) - 100100
+            Bit 8-13: Encoded UNIT-CODE (which is the slave_dip) - 100000
+            Bit 14-21: Action
+
+            #1 EIN 00010001
+            #1 AUS 00000000
+            #1 HELL 00001010
+            #1 DUNKEL 00011011
+            #2 EIN 10010011
+            #2 AUS 10000010
+            #2 HELL 10001000
+            #2 DUNKEL 10011001
+            #3 EIN 11010010
+            #3 AUS 11000011
+            #3 HELL 11001001
+            #3 DUNKEL 11011000
+            #4 EIN 01010000
+            #4 AUS 01000001
+            #4 HELL 01001011
+            #4 DUNKEL 01011010
+            ALLE EIN 11110000
+            ALLE AUS 11100001
+        */
+
+        // First Bit
+        codeword = codeword+"0";
+
+        // Encode SYSTEM_CODE from binary format to the tri-state format
+        for (var i=0;i<6;i++) { 
+            var cur = master_dip.charAt(i);
+            if (cur == '0') {
+                codeword = codeword+"F";
+            }
+            else {
+                codeword = codeword+"0";
+            }
         }
 
-        // Append codepart_master to codeword
-        codeword = codeword+codepart_master;
-
-        // Encode Slave DIP - use parseInt to strip zeroes from slave_dip  
-        switch (slave_dip) {
-          case 1:
-            codepart_slave = "0000";
-            break;
-          case 2:
-            codepart_slave = "F000";
-            break;
-          case 3:
-            codepart_slave = "0F00";
-            break;
-          case 4:
-            codepart_slave = "FF00";
-            break;
-          case 5:
-            codepart_slave = "00F0";
-            break;
-          case 6:
-            codepart_slave = "F0F0";
-            break;
-          case 7:
-            codepart_slave = "0FF0";
-            break;
-          case 8:
-            codepart_slave = "FFF0";
-            break;
-          case 9:
-            codepart_slave = "000F";
-            break;
-          case 10:
-            codepart_slave = "F00F";
-            break;
-          case 11:
-            codepart_slave = "0F0F";
-            break;
-          case 12:
-            codepart_slave = "FF0F";
-            break;
-          case 13:
-            codepart_slave = "00FF";
-            break;
-          case 14:
-            codepart_slave = "F0FF";
-            break;
-          case 15:
-            codepart_slave = "0FFF";
-            break;
-          case 16:
-            codepart_slave = "FFFF";
-            break;
-          default:
-            throw new Error('[kraken] Slave DIP "'+slave_dip+'" not supported.');
-            break;
+        // Encode UNIT from binary format to the tri-state format
+        for (var j=0;j<6;j++) { 
+            var cur = slave_dip.charAt(j);
+            if (cur == '0') {
+                codeword = codeword+"F";
+            }
+            else {
+                codeword = codeword+"0";
+            }
         }
-        
-        // Append codepart_slave to codeword
-        codeword = codeword+codepart_slave;
-
-        // Next 2 bits are always "0F"
-        codeword = codeword+"0F";
 
         // Encode status from string to trit-state format
+        // #2 EIN 10010011
+        // #2 AUS 10000010
         if (status == 'on') {
-            codeword = codeword+"FF";
+            codeword = codeword+"0FF0FF00";
         }
         else if(status == 'off') {
-            codeword = codeword+"F0";
+            codeword = codeword+"0FFFFF0F";
         }
 
         if (this.debug) {
             console.log(this.date+" Codeword: "+codeword);
         }
-
         return codeword;
     }
     else {
